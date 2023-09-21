@@ -137,14 +137,16 @@ end)
 
 local FollowMe_Frame = CreateFrame("Frame", "FollowMe_Frame", UIParent,
                                    "TooltipBorderedFrameTemplate")
+EventFrame:SetScript("OnLoad", function () print("loaded") end)
 FollowMe_Frame:SetFrameStrata("BACKGROUND")
-FollowMe_Frame:SetWidth(180)
+FollowMe_Frame:SetWidth(100)
 FollowMe_Frame:SetHeight(128)
 FollowMe_Frame:SetMovable(true)
 FollowMe_Frame:EnableMouse(true)
 FollowMe_Frame:RegisterForDrag("LeftButton")
 FollowMe_Frame:SetScript("OnDragStart", FollowMe_Frame.StartMoving)
 FollowMe_Frame:SetScript("OnDragStop", FollowMe_Frame.StopMovingOrSizing)
+
 
 FollowMe_Frame:SetPoint("CENTER", 0, 0)
 FollowMe_Frame:Show()
@@ -162,6 +164,7 @@ function updateFrame()
     table.sort(sortedNames)
 
     local previousFrame = FollowMe_Frame.heading
+    local frameHeight = FollowMe_Frame.heading:GetStringHeight() + 10
 
     for _, name in ipairs(sortedNames) do
         local state = A.followers[name]
@@ -191,7 +194,12 @@ function updateFrame()
         state.frame:Show()
 
         previousFrame = state.frame
+        frameHeight = frameHeight + state.frame:GetHeight() + 10
+
+        print(state.frame:GetHeight())
     end
+
+    FollowMe_Frame:SetHeight(frameHeight)
 end
 
 function EventFrame:AUTOFOLLOW_BEGIN(name)
@@ -217,7 +225,7 @@ end
 -- Slash commands
 --
 
-SLASH_BC_REC1 = '/bc'
+SLASH_BC_REC1 = '/bcrec'
 SlashCmdList['BC_REC'] = function(message)
     parse_message(message, UnitName("player"))
 end
