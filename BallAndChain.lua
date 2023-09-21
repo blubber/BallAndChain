@@ -135,26 +135,25 @@ EventFrame:SetScript("OnUpdate", function(self, elapsed)
     end
 end)
 
-local FollowMe_Frame = CreateFrame("Frame", "FollowMe_Frame", UIParent,
+local BCFrame = CreateFrame("Frame", "BCFrame", UIParent,
                                    "TooltipBorderedFrameTemplate")
-EventFrame:SetScript("OnLoad", function () print("loaded") end)
-FollowMe_Frame:SetFrameStrata("BACKGROUND")
-FollowMe_Frame:SetWidth(100)
-FollowMe_Frame:SetHeight(128)
-FollowMe_Frame:SetMovable(true)
-FollowMe_Frame:EnableMouse(true)
-FollowMe_Frame:RegisterForDrag("LeftButton")
-FollowMe_Frame:SetScript("OnDragStart", FollowMe_Frame.StartMoving)
-FollowMe_Frame:SetScript("OnDragStop", FollowMe_Frame.StopMovingOrSizing)
+BCFrame:SetFrameStrata("BACKGROUND")
+BCFrame:SetWidth(100)
+BCFrame:SetHeight(128)
+BCFrame:SetMovable(true)
+BCFrame:EnableMouse(true)
+BCFrame:RegisterForDrag("LeftButton")
+BCFrame:SetScript("OnDragStart", BCFrame.StartMoving)
+BCFrame:SetScript("OnDragStop", BCFrame.StopMovingOrSizing)
 
 
-FollowMe_Frame:SetPoint("CENTER", 0, 0)
-FollowMe_Frame:Show()
+BCFrame:SetPoint("CENTER", 0, 0)
+BCFrame:Show()
 
-FollowMe_Frame.heading = FollowMe_Frame:CreateFontString(nil, "ARTWORK")
-FollowMe_Frame.heading:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
-FollowMe_Frame.heading:SetPoint("TOP", 0, -10)
-FollowMe_Frame.heading:SetText("Followers")
+BCFrame.heading = BCFrame:CreateFontString(nil, "ARTWORK")
+BCFrame.heading:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
+BCFrame.heading:SetPoint("TOP", 0, -10)
+BCFrame.heading:SetText("Followers")
 
 function updateFrame()
     local sortedNames = {}
@@ -163,8 +162,8 @@ function updateFrame()
 
     table.sort(sortedNames)
 
-    local previousFrame = FollowMe_Frame.heading
-    local frameHeight = FollowMe_Frame.heading:GetStringHeight() + 10
+    local previousFrame = BCFrame.heading
+    local frameHeight = BCFrame.heading:GetStringHeight() + 10
 
     for _, name in ipairs(sortedNames) do
         local state = A.followers[name]
@@ -190,7 +189,7 @@ function updateFrame()
         end
 
         state.frame:SetPoint("TOP", previousFrame, "BOTTOM", 0, -5)
-        state.frame:SetWidth(FollowMe_Frame:GetWidth() - 10)
+        state.frame:SetWidth(BCFrame:GetWidth() - 10)
         state.frame:Show()
 
         previousFrame = state.frame
@@ -199,7 +198,7 @@ function updateFrame()
         print(state.frame:GetHeight())
     end
 
-    FollowMe_Frame:SetHeight(frameHeight)
+    BCFrame:SetHeight(frameHeight)
 end
 
 function EventFrame:AUTOFOLLOW_BEGIN(name)
