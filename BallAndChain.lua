@@ -30,9 +30,12 @@ end
 function handle_follow(sender, args)
     if #args ~= 1 then return end
 
-    local followee = args[1]
+    local target = args[1]
 
-    if followee ~= UnitName("player") then return end
+    if target ~= UnitName("player") and A.followers[sender] then
+        A.followers[sender].following = false
+        return
+    end
 
     if A.followers[sender] == nil then
         A.followers[sender] = {since = 0, following = true}
