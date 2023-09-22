@@ -1,97 +1,15 @@
 local AddonName, A = ...
 
-local DEBUG = true
+local UPDATE_INTERVAL = 10
+local FORGET_AFTER = 120
 
-A.timeSinceLastUpdate = 0
-A.updateInterval = 10
-A.forgetAfter = 300
-
-A.followers = {}
-
-A.CMD_FOLLOW = "F"
-A.CMD_UNFOLLOW = "U"
-
+local debug = true
+local followers = {}
 local followTarget = nil
 
-function send_message(command, ...)
-    local message = command
-    local arg = {...}
-
-    print(select("#", ...))
-
-    for _, v in ipairs(arg) do message = message .. ":" .. v end
-
-    if DEBUG then
-        DEFAULT_CHAT_FRAME:AddMessage(AddonName .. " " .. message, 1.0, 1.0, 0.0)
-    end
-    C_ChatInfo.SendAddonMessage(AddonName, message, "GUILD")
-end
-
-function handle_follow(sender, args)
-    if #args ~= 1 then return end
-
-    local target = args[1]
-
-    if target ~= UnitName("player") and A.followers[sender] then
-        A.followers[sender].following = false
-        return
-    end
-
-    if A.followers[sender] == nil then
-        A.followers[sender] = {since = 0, following = true}
-    else
-        A.followers[sender].following = true
-        A.followers[sender].since = 0
-    end
-
-    updateFrame()
-end
-
-function handle_unfollow(sender, args)
-    if #args ~= 1 then return end
-
-    local followee = args[1]
-
-    if followee ~= UnitName("player") then return end
-
-    if A.followers[sender] == nil then
-        A.followers[sender] = {since = 0, following = false}
-    else
-        A.followers[sender].following = false
-        A.followers[sender].since = 0
-    end
-
-    updateFrame()
-end
-
-function parse_message(message, sender)
-    if DEBUG then
-        DEFAULT_CHAT_FRAME:AddMessage("Receive message: " .. message ..
-                                          " from: " .. sender, 1.0, 1.0, 0.0)
-
-        local command = ""
-        local args = {}
-
-        for v in string.gmatch(message, "([^:]+)") do
-            if command == "" then
-                command = v
-            else
-                table.insert(args, v)
-            end
-        end
-
-        if command == A.CMD_FOLLOW then
-            handle_follow(sender, args)
-        elseif command == A.CMD_UNFOLLOW then
-            handle_unfollow(sender, args)
-        end
-    end
-end
-
 --
--- Frames
+-- Follower Frame
 --
-
 local frames = {}
 
 function createFrame()
@@ -105,50 +23,17 @@ function removeFrame(frame)
     frame:Hide()
     table.insert(frames, frame)
 end
-
-local EventFrame = CreateFrame("Frame")
-EventFrame:RegisterEvent("AUTOFOLLOW_BEGIN")
-EventFrame:RegisterEvent("AUTOFOLLOW_END")
-EventFrame:RegisterEvent("CHAT_MSG_ADDON")
-EventFrame:SetScript("OnEvent", function(self, event, ...)
-    return self[event] and self[event](self, ...)
-end)
-EventFrame:SetScript("OnUpdate", function(self, elapsed)
-    A.timeSinceLastUpdate = A.timeSinceLastUpdate + elapsed
-    if A.timeSinceLastUpdate >= A.updateInterval then
-        local shouldUpdate = false
-
-        if followTarget then sned_message(A.CMD_FOLLOW, followTarget) end
-
-        for name, state in pairs(A.followers) do
-            state.since = state.since + A.timeSinceLastUpdate
-
-            if state.since >= A.forgetAfter then
-                removeFrame(state.frame)
-                A.followers[name] = nil
-                shouldUpdate = true
-            end
-        end
-
-        A.timeSinceLastUpdate = 0
-        if shouldUpdate then updateFrame() end
-    end
-end)
-
 local BCFrame = CreateFrame("Frame", "BCFrame", UIParent,
-                                   "TooltipBorderedFrameTemplate")
+                            "TooltipBorderedFrameTemplate")
+BCFrame:Hide()
 BCFrame:SetFrameStrata("BACKGROUND")
 BCFrame:SetWidth(100)
-BCFrame:SetHeight(128)
 BCFrame:SetMovable(true)
 BCFrame:EnableMouse(true)
 BCFrame:RegisterForDrag("LeftButton")
 BCFrame:SetScript("OnDragStart", BCFrame.StartMoving)
 BCFrame:SetScript("OnDragStop", BCFrame.StopMovingOrSizing)
-
-
 BCFrame:SetPoint("CENTER", 0, 0)
-BCFrame:Show()
 
 BCFrame.heading = BCFrame:CreateFontString(nil, "ARTWORK")
 BCFrame.heading:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
@@ -158,7 +43,9 @@ BCFrame.heading:SetText("Followers")
 function updateFrame()
     local sortedNames = {}
 
-    for name in pairs(A.followers) do table.insert(sortedNames, name) end
+    for name, state in pairs(followers) do
+        if state then table.insert(sortedNames, name) end
+    end
 
     table.sort(sortedNames)
 
@@ -166,7 +53,7 @@ function updateFrame()
     local frameHeight = BCFrame.heading:GetStringHeight() + 10
 
     for _, name in ipairs(sortedNames) do
-        local state = A.followers[name]
+        local state = followers[name]
 
         if state.frame == nil then
             state.frame = createFrame()
@@ -194,12 +81,53 @@ function updateFrame()
 
         previousFrame = state.frame
         frameHeight = frameHeight + state.frame:GetHeight() + 10
-
-        print(state.frame:GetHeight())
     end
 
     BCFrame:SetHeight(frameHeight)
+
+    if #sortedNames > 0 then
+        BCFrame:Show()
+    else
+        BCFrame:Hide()
+    end
 end
+
+--
+-- Events
+--
+
+local timeSinceLastUpdate = 0
+
+local EventFrame = CreateFrame("Frame")
+EventFrame:RegisterEvent("AUTOFOLLOW_BEGIN")
+EventFrame:RegisterEvent("AUTOFOLLOW_END")
+EventFrame:RegisterEvent("CHAT_MSG_ADDON")
+EventFrame:SetScript("OnEvent", function(self, event, ...)
+    return self[event] and self[event](self, ...)
+end)
+EventFrame:SetScript("OnUpdate", function(self, elapsed)
+    timeSinceLastUpdate = timeSinceLastUpdate + elapsed
+    if timeSinceLastUpdate >= UPDATE_INTERVAL then
+        local shouldUpdate = false
+
+        if followTarget then sned_message(A.CMD_FOLLOW, followTarget) end
+
+        for name, state in pairs(followers) do
+            if state then
+                state.since = state.since + timeSinceLastUpdate
+
+                if state.since >= FORGET_AFTER then
+                    removeFrame(state.frame)
+                    followers[name] = nil
+                    shouldUpdate = true
+                end
+            end
+        end
+
+        timeSinceLastUpdate = 0
+        if shouldUpdate then updateFrame() end
+    end
+end)
 
 function EventFrame:AUTOFOLLOW_BEGIN(name)
     if followTarget then send_message(A.CMD_UNFOLLOW, followTarget) end
@@ -221,6 +149,86 @@ function EventFrame:CHAT_MSG_ADDON(prefix, message, channel, sender, target, _,
 end
 
 --
+-- Message Halding
+--
+
+local Commands = {FOLLOW = "F", UNFOLLOW = "U"}
+
+function send_message(command, ...)
+    local message = command
+    local arg = {...}
+
+    for _, v in ipairs(arg) do message = message .. ":" .. v end
+
+    if debug then
+        DEFAULT_CHAT_FRAME:AddMessage(AddonName .. " " .. message, 1.0, 1.0, 0.0)
+    end
+    C_ChatInfo.SendAddonMessage(AddonName, message, "GUILD")
+end
+
+function A:FOLLOW(sender, args)
+    print(sender)
+    if #args ~= 1 then return end
+
+    local target = args[1]
+
+    if target ~= UnitName("player") and followers[sender] then
+        followers[sender].following = false
+        return
+    end
+
+    if followers[sender] == nil then
+        followers[sender] = {since = 0, following = true}
+    else
+        followers[sender].following = true
+        followers[sender].since = 0
+    end
+
+    updateFrame()
+end
+
+function A:UNFOLLOW(sender, args)
+    if #args ~= 1 then return end
+
+    local followee = args[1]
+
+    if followee ~= UnitName("player") then return end
+
+    if followers[sender] == nil then
+        followers[sender] = {since = 0, following = false}
+    else
+        followers[sender].following = false
+        followers[sender].since = 0
+    end
+
+    updateFrame()
+end
+
+function parse_message(message, sender)
+    if debug then
+        DEFAULT_CHAT_FRAME:AddMessage("Receive message: " .. message ..
+                                          " from: " .. sender, 1.0, 1.0, 0.0)
+
+        local command = ""
+        local args = {}
+
+        for v in string.gmatch(message, "([^:]+)") do
+            if command == "" then
+                command = v
+            else
+                table.insert(args, v)
+            end
+        end
+
+        for k, v in pairs(Commands) do
+            if v == command then
+                return A[k] and A[k](A, sender, args)
+            end
+        end
+    end
+end
+
+--
 -- Slash commands
 --
 
@@ -228,3 +236,8 @@ SLASH_BC_REC1 = '/bcrec'
 SlashCmdList['BC_REC'] = function(message)
     parse_message(message, UnitName("player"))
 end
+
+--
+-- Initial Draw
+--
+updateFrame()
