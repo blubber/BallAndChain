@@ -3,7 +3,7 @@ local AddonName, A = ...
 local UPDATE_INTERVAL = 10
 local FORGET_AFTER = 120
 
-local debug = true
+local debug = false
 local followers = {}
 local followTarget = nil
 
@@ -102,6 +102,7 @@ local EventFrame = CreateFrame("Frame")
 EventFrame:RegisterEvent("AUTOFOLLOW_BEGIN")
 EventFrame:RegisterEvent("AUTOFOLLOW_END")
 EventFrame:RegisterEvent("CHAT_MSG_ADDON")
+EventFrame:RegisterEvent("ADDON_LOADED")
 EventFrame:SetScript("OnEvent", function(self, event, ...)
     return self[event] and self[event](self, ...)
 end)
@@ -110,7 +111,7 @@ EventFrame:SetScript("OnUpdate", function(self, elapsed)
     if timeSinceLastUpdate >= UPDATE_INTERVAL then
         local shouldUpdate = false
 
-        if followTarget then sned_message(A.CMD_FOLLOW, followTarget) end
+        if followTarget then notify_follow(followTarget) end
 
         for name, state in pairs(followers) do
             if state then
@@ -130,22 +131,19 @@ EventFrame:SetScript("OnUpdate", function(self, elapsed)
 end)
 
 function EventFrame:AUTOFOLLOW_BEGIN(name)
-    if followTarget then send_message(A.CMD_UNFOLLOW, followTarget) end
-
-    followTarget = name
-
-    send_message(A.CMD_FOLLOW, followTarget)
+    notify_unfollow();
+    notify_follow(name)
 end
 
-function EventFrame:AUTOFOLLOW_END()
-    send_message(A.CMD_UNFOLLOW)
-    send_message(A.CMD_UNFOLLOW, followTarget)
-    followTarget = nil
-end
+function EventFrame:AUTOFOLLOW_END() notify_unfollow() end
 
 function EventFrame:CHAT_MSG_ADDON(prefix, message, channel, sender, target, _,
                                    _, _)
     if prefix == AddonName then parse_message(message, sender) end
+end
+
+function EventFrame:ADDON_LOADED(addonName, _)
+    if addonName == AddonName then updateFrame() end
 end
 
 --
@@ -153,6 +151,17 @@ end
 --
 
 local Commands = {FOLLOW = "F", UNFOLLOW = "U"}
+
+function otify_follow(target)
+    followTarget = target
+    send_message(Commands.FOLLOW, followTarget)
+end
+
+function notify_unfollow()
+    if followTarget then send_message(Commands.UNFOLLOW, followTarget) end
+
+    followTarget = nil
+end
 
 function send_message(command, ...)
     local message = command
@@ -237,7 +246,8 @@ SlashCmdList['BC_REC'] = function(message)
     parse_message(message, UnitName("player"))
 end
 
---
--- Initial Draw
---
-updateFrame()
+SLASH_BC_DEBUG1 = "/bcdebug"
+SlashCmdList['BC_DEBUG'] = function(message)
+    debug = not debug
+    if debug then print("Debug on") end
+end
