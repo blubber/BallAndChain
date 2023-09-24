@@ -85,10 +85,13 @@ function updateFrame()
 
     BCFrame:SetHeight(frameHeight)
 
-    if #sortedNames > 0 then
-        BCFrame:Show()
-    else
+    print(#sortedNames)
+    print(BCConf.HideEmptyFrame)
+
+    if #sortedNames == 0 and BCConf.HideEmptyFrame then
         BCFrame:Hide()
+    else
+        BCFrame:Show()
     end
 end
 
@@ -152,7 +155,7 @@ end
 
 local Commands = {FOLLOW = "F", UNFOLLOW = "U"}
 
-function otify_follow(target)
+function notify_follow(target)
     followTarget = target
     send_message(Commands.FOLLOW, followTarget)
 end
@@ -176,21 +179,21 @@ function send_message(command, ...)
 end
 
 function A:FOLLOW(sender, args)
-    print(sender)
     if #args ~= 1 then return end
 
     local target = args[1]
 
     if target ~= UnitName("player") and followers[sender] then
         followers[sender].following = false
-        return
     end
 
-    if followers[sender] == nil then
-        followers[sender] = {since = 0, following = true}
-    else
-        followers[sender].following = true
-        followers[sender].since = 0
+    if target == UnitName("player") then
+        if followers[sender] == nil then
+            followers[sender] = {since = 0, following = true}
+        else
+            followers[sender].following = true
+            followers[sender].since = 0
+        end
     end
 
     updateFrame()
@@ -217,23 +220,21 @@ function parse_message(message, sender)
     if debug then
         DEFAULT_CHAT_FRAME:AddMessage("Receive message: " .. message ..
                                           " from: " .. sender, 1.0, 1.0, 0.0)
+    end
 
-        local command = ""
-        local args = {}
+    local command = ""
+    local args = {}
 
-        for v in string.gmatch(message, "([^:]+)") do
-            if command == "" then
-                command = v
-            else
-                table.insert(args, v)
-            end
+    for v in string.gmatch(message, "([^:]+)") do
+        if command == "" then
+            command = v
+        else
+            table.insert(args, v)
         end
+    end
 
-        for k, v in pairs(Commands) do
-            if v == command then
-                return A[k] and A[k](A, sender, args)
-            end
-        end
+    for k, v in pairs(Commands) do
+        if v == command then return A[k] and A[k](A, sender, args) end
     end
 end
 
