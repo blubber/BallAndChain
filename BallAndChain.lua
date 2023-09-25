@@ -3,7 +3,6 @@ local AddonName, A = ...
 local UPDATE_INTERVAL = 10
 local FORGET_AFTER = 120
 
-local debug = false
 local followers = {}
 local followTarget = nil
 
@@ -157,22 +156,22 @@ local Commands = {FOLLOW = "F", UNFOLLOW = "U"}
 
 function notify_follow(target)
     followTarget = target
-    send_message(Commands.FOLLOW, followTarget)
+    A.send_message(Commands.FOLLOW, followTarget)
 end
 
 function notify_unfollow()
-    if followTarget then send_message(Commands.UNFOLLOW, followTarget) end
+    if followTarget then A.send_message(Commands.UNFOLLOW, followTarget) end
 
     followTarget = nil
 end
 
-function send_message(command, ...)
+function A:send_message(command, ...)
     local message = command
     local arg = {...}
 
     for _, v in ipairs(arg) do message = message .. ":" .. v end
 
-    if debug then
+    if BCConf.Debug then
         DEFAULT_CHAT_FRAME:AddMessage(AddonName .. " " .. message, 1.0, 1.0, 0.0)
     end
     C_ChatInfo.SendAddonMessage(AddonName, message, "GUILD")
@@ -219,7 +218,7 @@ function A:UNFOLLOW(sender, args)
 end
 
 function parse_message(message, sender)
-    if debug then
+    if BCConf.Debug then
         DEFAULT_CHAT_FRAME:AddMessage("Receive message: " .. message ..
                                           " from: " .. sender, 1.0, 1.0, 0.0)
     end
@@ -252,6 +251,6 @@ end
 
 SLASH_BC_DEBUG1 = "/bcdebug"
 SlashCmdList['BC_DEBUG'] = function(message)
-    debug = not debug
-    if debug then print("Debug on") end
+    BCConf.Debug = not BCConf.Debug
+    if BCConf.Debug then print("BCConf.Debug on") end
 end

@@ -1,6 +1,6 @@
 local AddonName, _ = ...
 
-BCConf = {HideEmptyFrame = true}
+BCConf = {HideEmptyFrame = true, Debug = false}
 
 local CheckButtons = {
     {
