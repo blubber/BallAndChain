@@ -85,9 +85,6 @@ function updateFrame()
 
     BCFrame:SetHeight(frameHeight)
 
-    print(#sortedNames)
-    print(BCConf.HideEmptyFrame)
-
     if #sortedNames == 0 and BCConf.HideEmptyFrame then
         BCFrame:Hide()
     else
@@ -146,7 +143,10 @@ function EventFrame:CHAT_MSG_ADDON(prefix, message, channel, sender, target, _,
 end
 
 function EventFrame:ADDON_LOADED(addonName, _)
-    if addonName == AddonName then updateFrame() end
+    if addonName == AddonName then
+        C_ChatInfo.RegisterAddonMessagePrefix(AddonName)
+        updateFrame();
+    end
 end
 
 --
@@ -182,12 +182,13 @@ function A:FOLLOW(sender, args)
     if #args ~= 1 then return end
 
     local target = args[1]
+    local unitName, _ = UnitName("player")
 
-    if target ~= UnitName("player") and followers[sender] then
+    if target ~= unitName and followers[sender] then
         followers[sender].following = false
     end
 
-    if target == UnitName("player") then
+    if target == unitName then
         if followers[sender] == nil then
             followers[sender] = {since = 0, following = true}
         else
@@ -203,8 +204,9 @@ function A:UNFOLLOW(sender, args)
     if #args ~= 1 then return end
 
     local followee = args[1]
+    local unitName, _ = UnitName("player")
 
-    if followee ~= UnitName("player") then return end
+    if followee ~= unitName then return end
 
     if followers[sender] == nil then
         followers[sender] = {since = 0, following = false}
@@ -244,7 +246,8 @@ end
 
 SLASH_BC_REC1 = '/bcrec'
 SlashCmdList['BC_REC'] = function(message)
-    parse_message(message, UnitName("player"))
+    local unitName, _ = UnitName("player")
+    parse_message(message, unitName)
 end
 
 SLASH_BC_DEBUG1 = "/bcdebug"
