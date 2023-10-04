@@ -3,5 +3,7 @@
 ## Author: Tiemo
 ## SavedVariables: BCConf
 
+BallAndChain-Core.lua
+BallAndChain-Events.lua
 BallAndChain-Settings.lua
-BallAndChain.lua
+BallAndChain-Frame.lua
