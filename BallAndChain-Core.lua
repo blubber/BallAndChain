@@ -3,40 +3,47 @@ local aName, aObj = ...
 aObj.followTarget = nil
 aObj.followers = {}
 
-local Command = {FOLLOW = "F", UNFOLLOW = "U", REGISTER = "R"}
-local Event = {}
+local EventHandler = {
+    QUEST_ACCEPTED = function(sender, questId)
+        local questTitle, _, _, _ = C_TaskQuest.GetQuestInfoByQuestID(questId)
+        aObj.Print(sender, "accepted quest", questTitle)
+    end,
 
-local send_message = function(command, ...)
-    local message = command
+    QUEST_TURNED_IN = function(sender, questId, _, _)
+        local questTitle, _, _, _ = C_TaskQuest.GetQuestInfoByQuestID(questId)
+        aObj.Print(sender, "turned in quest", questTitle)
+    end,
+
+    QUEST_AUTOCOMPLETE = function(sender, questId)
+        local questTitle, _, _, _ = C_TaskQuest.GetQuestInfoByQuestID(questId)
+        aObj.Print(sender, "turned in quest", questTitle)
+        -- self:QUEST_TURNED_IN(sender, questId, nil, nil)
+    end
+
+}
+
+function aObj.SendEvent(event, ...)
+    local message = event
     local args = {...}
 
-    for _, arg in ipairs(args) do message = message .. ":" .. arg end
-
-    aObj.Debug("Sending message", message)
+    for _, arg in ipairs(args) do
+        message = message .. ":"
+        if arg ~= nil then message = message .. tostring(arg) end
+    end
 
     C_ChatInfo.SendAddonMessage(aName, message, "GUILD")
-end
-
-function aObj.Follow(name)
-    aObj.followTarget = name
-    send_message(Command.FOLLOW, name)
-end
-
-function aObj.Unfollow()
-    aObj.followTargete = nil
-    send_message(Command.UNFOLLOW)
 end
 
 function aObj.Register()
     if not C_ChatInfo.IsAddonMessagePrefixRegistered(aName) then
         C_ChatInfo.RegisterAddonMessagePrefix(aName)
     end
-    send_message(Command.REGISTER)
+    aObj.SendEvent("BC_REGISTER")
 end
 
-function aObj.NotifyFollow(name) send_message(Command.FOLLOW, name) end
+function aObj.SetFollowTarget(name) aObj.followTarget = name end
 
-function aObj.NotifyUnfollow() send_message(Command.UNFOLLOW) end
+function aObj.ClearFollowTarget() aObj.followTarget = nil end
 
 function aObj.Tick(elapsed)
     for _, follower in pairs(aObj.followers) do
@@ -44,9 +51,9 @@ function aObj.Tick(elapsed)
     end
 
     if aObj.followTarget then
-        send_message(Command.FOLLOW, aObj.followTarget)
+        aObj.SendEvent("AUTOFOLLOW_BEGINS", aObj.followTarget)
     else
-        send_message(Command.UNFOLLOW)
+        aObj.SendEvent("AUTOFOLLOW_ENDS")
     end
 
     aObj.UpdateFrame()
@@ -57,23 +64,21 @@ function aObj.HandleMessage(message, sender)
 
     aObj.Debug("Receive from", senderName, " -- ", message)
 
-    local command = nil
+    local event = nil
     local args = {}
 
     for v in string.gmatch(message, "([^:]+)") do
-        if not command then
-            command = v
+        if not event then
+            event = v
         else
             table.insert(args, v)
         end
     end
 
-    for k, v in pairs(Command) do
-        if v == command then return Event[k] and Event[k](sender, args) end
-    end
+    return EventHandler[event] and EventHandler[event](sender, unpack(args))
 end
 
-function Event:REGISTER(sender, args)
+function EventHandler:REGISTER(sender, args)
     if aObj.followTarget then
         send_message(Command.FOLLOW, aObj.followTarget)
     else
@@ -81,7 +86,7 @@ function Event:REGISTER(sender, args)
     end
 end
 
-function Event.FOLLOW(source, args)
+function EventHandler.AUTOFOLLOW_BEGINS(source, args)
     if #args < 1 then return end
 
     local followTarget = args[1]
@@ -109,7 +114,7 @@ function Event.FOLLOW(source, args)
     aObj.UpdateFrame()
 end
 
-function Event.UNFOLLOW(source, args)
+function EventHandler.AUTOFOLLOW_ENDS(source, args)
     aObj.Debug(source, "stoppped following")
 
     if aObj.followers[source] then
@@ -120,6 +125,20 @@ function Event.UNFOLLOW(source, args)
     end
 
     aObj.UpdateFrame()
+end
+
+function aObj.Print(...)
+    if BCConf.Debug then
+        local args = {...}
+        local message = ""
+
+        for i, arg in ipairs(args) do
+            if i > 0 then message = message .. " " end
+            message = message .. arg
+        end
+
+        DEFAULT_CHAT_FRAME:AddMessage(message, 0.2, 0.8, 1.0)
+    end
 end
 
 function aObj.Debug(...)
