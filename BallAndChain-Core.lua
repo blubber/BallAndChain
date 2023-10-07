@@ -5,16 +5,19 @@ aObj.followers = {}
 
 local EventHandler = {
     QUEST_ACCEPTED = function(sender, questId)
+        local questId = tonumber(questId)
         local questTitle, _, _, _ = C_TaskQuest.GetQuestInfoByQuestID(questId)
         aObj.Print(sender, "accepted quest", questTitle)
     end,
 
     QUEST_TURNED_IN = function(sender, questId, _, _)
+        local questId = tonumber(questId)
         local questTitle, _, _, _ = C_TaskQuest.GetQuestInfoByQuestID(questId)
         aObj.Print(sender, "turned in quest", questTitle)
     end,
 
     QUEST_AUTOCOMPLETE = function(sender, questId)
+        local questId = tonumber(questId)
         local questTitle, _, _, _ = C_TaskQuest.GetQuestInfoByQuestID(questId)
         aObj.Print(sender, "turned in quest", questTitle)
         -- self:QUEST_TURNED_IN(sender, questId, nil, nil)
@@ -124,7 +127,7 @@ function aObj.Print(...)
         message = message .. arg
     end
 
-    DEFAULT_CHAT_FRAME:AddMessage(message, 0.2, 0.8, 1.0)
+    DEFAULT_CHAT_FRAME:AddMessage(message, 0.4, 0.9, 1.0)
 end
 
 function aObj.Debug(...)
