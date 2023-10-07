@@ -32,7 +32,10 @@ end)
 
 function frame:AUTOFOLLOW_BEGIN(name) aObj.SetFollowTarget(name) end
 
-function frame:AUTOFOLLOW_END() aObj.ClearFollowTarget() end
+function frame:AUTOFOLLOW_END()
+    aObj.ClearFollowTarget()
+    PlaySoundFile("Interface\\AddOns\\BallAndChain\\alert02.ogg", "Master")
+end
 
 function frame:CHAT_MSG_ADDON(prefix, message, channel, sender, target, _, _, _)
     if prefix == aName then aObj.HandleMessage(message, sender) end
