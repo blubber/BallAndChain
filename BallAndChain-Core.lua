@@ -18,6 +18,34 @@ local EventHandler = {
         local questTitle, _, _, _ = C_TaskQuest.GetQuestInfoByQuestID(questId)
         aObj.Print(sender, "turned in quest", questTitle)
         -- self:QUEST_TURNED_IN(sender, questId, nil, nil)
+    end,
+
+    AUTOFOLLOW_BEGIN = function(sender, target)
+        local playerName, _ = UnitName("player")
+
+        if target ~= playerName and aObj.followers[sender] then
+            if aObj.followers[sender].following then
+                aObj.followers[sender].since = 0
+            end
+            aObj.followers[sender].following = false
+            return
+        end
+
+        if not aObj.followers[sender] then aObj.followers[sender] = {} end
+
+        aObj.followers[sender].following = true
+        aObj.followers[sender].since = 0
+
+        aObj.UpdateFrame()
+    end,
+
+    AUTOFOLLOW_END = function(sender)
+        if aObj.followers[sender] and aObj.followers[sender].following then
+            aObj.followers[sender].since = 0
+            aObj.followers[sender].following = false
+        end
+
+        aObj.UpdateFrame()
     end
 
 }
@@ -31,6 +59,8 @@ function aObj.SendEvent(event, ...)
         if arg ~= nil then message = message .. tostring(arg) end
     end
 
+    aObj.Debug("Dispatch event", event)
+
     C_ChatInfo.SendAddonMessage(aName, message, "GUILD")
 end
 
@@ -41,22 +71,29 @@ function aObj.Register()
     aObj.SendEvent("BC_REGISTER")
 end
 
-function aObj.SetFollowTarget(name) aObj.followTarget = name end
+function aObj.SetFollowTarget(name)
+    aObj.Debug("Setting followTarget to", name)
+    aObj.followTarget = name
+end
 
-function aObj.ClearFollowTarget() aObj.followTarget = nil end
+function aObj.ClearFollowTarget()
+    aObj.Debug("Clearing followTargt")
+    aObj.followTarget = nil
+end
 
 function aObj.Tick(elapsed)
     for _, follower in pairs(aObj.followers) do
         follower.since = follower.since + elapsed
     end
 
-    if aObj.followTarget then
-        aObj.SendEvent("AUTOFOLLOW_BEGINS", aObj.followTarget)
-    else
-        aObj.SendEvent("AUTOFOLLOW_ENDS")
-    end
-
     aObj.UpdateFrame()
+
+    if aObj.followTarget then
+        local playerNAme, _ = UnitName("player")
+        aObj.SendEvent("AUTOFOLLOW_BEGIN", playerName)
+    else
+        aObj.SendEvent("AUTOFOLLOW_END")
+    end
 end
 
 function aObj.HandleMessage(message, sender)
@@ -75,70 +112,19 @@ function aObj.HandleMessage(message, sender)
         end
     end
 
-    return EventHandler[event] and EventHandler[event](sender, unpack(args))
-end
-
-function EventHandler:REGISTER(sender, args)
-    if aObj.followTarget then
-        send_message(Command.FOLLOW, aObj.followTarget)
-    else
-        send_message(Command.UNFOLLOW)
-    end
-end
-
-function EventHandler.AUTOFOLLOW_BEGINS(source, args)
-    if #args < 1 then return end
-
-    local followTarget = args[1]
-    local unitName, _ = UnitName("player")
-
-    aObj.Debug(source, "following", followTarget)
-
-    if unitName ~= followTarget and aObj.followers[source] then
-        aObj.Debug(source, "is following somebody else, set following to false")
-        if aObj.followers[source].following then
-            aObj.followers[source].since = 0
-        end
-        aObj.followers[source].following = false
-        return
-    end
-
-    if not aObj.followers[source] then
-        aObj.followers[source] = {following = true, frame = nil, since = 0}
-    else
-        print("Deze case")
-        aObj.followers[source].following = true
-        aObj.followers[source].since = 0
-    end
-
-    aObj.UpdateFrame()
-end
-
-function EventHandler.AUTOFOLLOW_ENDS(source, args)
-    aObj.Debug(source, "stoppped following")
-
-    if aObj.followers[source] then
-        if aObj.followers[source].following then
-            aObj.followers[source].since = 0
-        end
-        aObj.followers[source].following = false
-    end
-
-    aObj.UpdateFrame()
+    return EventHandler[event] and EventHandler[event](senderName, unpack(args))
 end
 
 function aObj.Print(...)
-    if BCConf.Debug then
-        local args = {...}
-        local message = ""
+    local args = {...}
+    local message = ""
 
-        for i, arg in ipairs(args) do
-            if i > 0 then message = message .. " " end
-            message = message .. arg
-        end
-
-        DEFAULT_CHAT_FRAME:AddMessage(message, 0.2, 0.8, 1.0)
+    for i, arg in ipairs(args) do
+        if i > 0 then message = message .. " " end
+        message = message .. arg
     end
+
+    DEFAULT_CHAT_FRAME:AddMessage(message, 0.2, 0.8, 1.0)
 end
 
 function aObj.Debug(...)
@@ -155,8 +141,20 @@ function aObj.Debug(...)
     end
 end
 
+function aObj.Dump()
+    aObj.Debug("FOLLOWERS")
+    for name, follower in pairs(aObj.followers) do
+        aObj.Debug("  --", name)
+        aObj.Debug("   following :", tostring(follower.following))
+        aObj.Debug("   since     :", tostring(follower.since))
+    end
+end
+
 SLASH_BC_REC1 = '/bcrec'
 SlashCmdList['BC_REC'] = function(message)
     local unitName, _ = UnitName("player")
     aObj.HandleMessage(message, unitName)
 end
+
+SLASH_BC_DUMP1 = '/bcdump'
+SlashCmdList['BC_DUMP'] = function(message) aObj.Dump() end

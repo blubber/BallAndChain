@@ -44,3 +44,15 @@ function frame:ADDON_LOADED(addonName, _)
         aObj.Tick(0)
     end
 end
+
+SLASH_BC_FOLLOW1 = '/bcf'
+SlashCmdList['BC_FOLLOW'] = function(message)
+    local unitName, _ = UnitName("player")
+    local handler = frame:GetScript("OnEvent")
+
+    if message == "1" then
+        handler(frame, "AUTOFOLLOW_BEGIN", unitName)
+    else
+        handler(frame, "AUTOFOLLOW_END")
+    end
+end

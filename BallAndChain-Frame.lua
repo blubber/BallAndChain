@@ -1,30 +1,23 @@
 local aName, aObj = ...
 
-local frames = {}
+local FOLLOWER_TIMEOUT = 90
 
 local createFrame = function()
-    local frame = table.remove(frames)
-    if not frame then
-        frame = CreateFrame("Frame")
+    local frame = CreateFrame("Frame")
 
-        frame.texture = frame:CreateTexture()
-        frame.texture:SetTexture("Interface/BUTTONS/WHITE8X8")
-        frame.texture:SetAllPoints(frame)
+    frame.texture = frame:CreateTexture()
+    frame.texture:SetTexture("Interface/BUTTONS/WHITE8X8")
 
-        frame.text = frame:CreateFontString(nil, "ARTWORK")
-        frame.text:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
+    frame.text = frame:CreateFontString(nil, "ARTWORK")
+    frame.text:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
 
-        frame:SetHeight(frame.text:GetStringHeight() + 6)
-        frame.text:SetPoint("CENTER", frame, "CENTER", 0, 0)
-    end
+    frame:SetHeight(19)
+    frame.texture:SetAllPoints(frame)
+    frame.text:SetPoint("CENTER", frame, "CENTER", 0, 0)
 
     return frame
 end
 
-local removeFrame = function(frame)
-    frame:Hide()
-    table.insert(frames, frame)
-end
 local frame = CreateFrame("Frame", "BallAndChainFrame", UIParent,
                           "TooltipBorderedFrameTemplate")
 frame:Hide()
@@ -53,7 +46,7 @@ function aObj.UpdateFrame()
 
     local previousFrame = frame.heading
     local frameHeight = frame.heading:GetStringHeight() + 10
-    local rows = #sortedNames
+    local rows = 0
 
     for _, name in ipairs(sortedNames) do
         local follower = aObj.followers[name]
@@ -63,24 +56,24 @@ function aObj.UpdateFrame()
             follower.frame.text:SetText(name)
         end
 
-        if follower.since > 30 then
-            follower.frame = removeFrame(follower.frame)
-            rows = rows - 1
+        if follower.following then
+            follower.frame.texture:SetVertexColor(0.1, 0.7, 0.4)
         else
-            if follower.following then
-                follower.frame.texture:SetVertexColor(0.1, 0.7, 0.4)
-            else
-                follower.frame.texture:SetVertexColor(1, 0, 0)
-            end
-
-            follower.frame:Show()
-
-            follower.frame:SetPoint("TOP", previousFrame, "BOTTOM", 0, -5)
-            follower.frame:SetWidth(frame:GetWidth() - 10)
-
-            previousFrame = follower.frame
-            frameHeight = frameHeight + follower.frame:GetHeight() + 10
+            follower.frame.texture:SetVertexColor(1, 0, 0)
         end
+
+        follower.frame:SetPoint("TOP", previousFrame, "BOTTOM", 0, -5)
+        follower.frame:SetWidth(frame:GetWidth() - 10)
+
+        if follower.since > FOLLOWER_TIMEOUT then
+            follower.frame:Hide()
+        else
+            follower.frame:Show()
+            rows = rows + 1
+        end
+
+        previousFrame = follower.frame
+        frameHeight = frameHeight + follower.frame:GetHeight() + 10
     end
 
     frame:SetHeight(frameHeight)
