@@ -145,11 +145,11 @@ function aObj.Debug(...)
 end
 
 function aObj.Dump()
-    aObj.Debug("FOLLOWERS")
+    print("FOLLOWERS")
     for name, follower in pairs(aObj.followers) do
-        aObj.Debug("  --", name)
-        aObj.Debug("   following :", tostring(follower.following))
-        aObj.Debug("   since     :", tostring(follower.since))
+        print("  --", name)
+        print("   following :", tostring(follower.following))
+        print("   since     :", tostring(follower.since))
     end
 end
 

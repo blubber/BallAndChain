@@ -8,6 +8,12 @@ local CheckButtons = {
         title = "Hide empty frame",
         tooltip = "Hide the followers frame when nobody has followed you for a while.",
         checkButton = nil
+    },
+    {
+        setting = "Debug",
+        title = "Enable debug info",
+        tooltip = "Prints verbose debug information in the chat window.",
+        checkButton = nil
     }
 }
 
