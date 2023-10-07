@@ -26,11 +26,13 @@ local EventHandler = {
     AUTOFOLLOW_BEGIN = function(sender, target)
         local playerName, _ = UnitName("player")
 
-        if target ~= playerName and aObj.followers[sender] then
-            if aObj.followers[sender].following then
-                aObj.followers[sender].since = 0
+        if target ~= playerName then
+            if aObj.followers[sender] then
+                if aObj.followers[sender].following then
+                    aObj.followers[sender].since = 0
+                end
+                aObj.followers[sender].following = false
             end
-            aObj.followers[sender].following = false
             return
         end
 
