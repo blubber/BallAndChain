@@ -46,7 +46,7 @@ function aObj.UpdateFrame()
 
     local previousFrame = frame.heading
     local frameHeight = frame.heading:GetStringHeight() + 10
-    local rows = 0
+    local isEmpty = true
 
     for _, name in ipairs(sortedNames) do
         local follower = aObj.followers[name]
@@ -69,16 +69,15 @@ function aObj.UpdateFrame()
             follower.frame:Hide()
         else
             follower.frame:Show()
-            rows = rows + 1
+            previousFrame = follower.frame
+            frameHeight = frameHeight + follower.frame:GetHeight() + 10
+            isEmpty = false
         end
-
-        previousFrame = follower.frame
-        frameHeight = frameHeight + follower.frame:GetHeight() + 10
     end
 
     frame:SetHeight(frameHeight)
 
-    if rows == 0 and BCConf.HideEmptyFrame then
+    if isEmpty and BCConf.HideEmptyFrame then
         frame:Hide()
     else
         frame:Show()
