@@ -1,62 +1,47 @@
-local AddonName, _ = ...
+local aName, _ = ...
 
 BCConf = {HideEmptyFrame = true, Debug = false}
 
-local CheckButtons = {
-    {
-        setting = "HideEmptyFrame",
-        title = "Hide empty frame",
-        tooltip = "Hide the followers frame when nobody has followed you for a while.",
-        checkButton = nil
-    },
-    {
-        setting = "Debug",
-        title = "Enable debug info",
-        tooltip = "Prints verbose debug information in the chat window.",
-        checkButton = nil
-    }
-}
+local function createCheckBox(setting, parent, anchor, label, tooltip, offsetX,
+                              offsetY)
 
-local panel = CreateFrame("Frame")
+    local offsetX = offsetX or 0
+    local offsetY = offsetY or -28
+
+    local checkButton = CreateFrame("CheckButton", nil, parent,
+                                    "ChatConfigCheckButtonTemplate")
+
+    checkButton:SetPoint("TOPLEFT", anchor, "TOPLEFT", offsetX, offsetY)
+
+    checkButton.Text:SetText(label)
+    checkButton.tooltip = tooltip
+
+    checkButton:SetScript("OnClick", function(self)
+        BCConf[setting] = self:GetChecked()
+
+    end)
+
+    checkButton:SetChecked(BCConf[setting])
+
+    return checkButton
+end
+
+local panel = CreateFrame("Frame", nil, nil, "SettingsListTemplate")
+panel:RegisterEvent("ADDON_LOADED")
 panel.name = "Ball And Chain"
 InterfaceOptions_AddCategory(panel)
 
-local title = panel:CreateFontString("ARTWORK", nil, "GameFontNormalLarge")
-title:SetPoint("TOP")
+local title = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightHuge")
+title:SetPoint("TOPLEFT", 7, -22)
 title:SetText("Ball And Chain")
 
-panel:RegisterEvent("ADDON_LOADED")
 panel:SetScript("OnEvent", function(self, event, ...)
-    if event == "ADDON_LOADED" then
-        local name, _ = ...
+    local args = {...}
 
-        if name ~= AddonName then return end
-
-        createCheckButtons()
+    if event == "ADDON_LOADED" and args[1] == aName then
+        local previous = createCheckBox("HideEmptyFrame", panel, panel,
+                                        "Hide frame when it's empty",
+                                        "Hide the followers frame when nobody has followed you for at least 90 seconds.",
+                                        10, -75)
     end
 end)
-
-function createCheckButtons()
-    local anchor = panel
-    local offset = -50
-
-    for _, checkButton in ipairs(CheckButtons) do
-        anchor = createCheckButton(checkButton, anchor, offset)
-        offset = -20
-    end
-end
-
-function createCheckButton(checkButton, anchor, offset)
-    local button = CreateFrame("CheckButton", nil, panel,
-                               "ChatConfigCheckButtonTemplate")
-    button:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, offset)
-    button.Text:SetText(checkButton.title)
-    button.tooltip = checkButton.tooltip
-    button:HookScript("OnClick", function(self)
-        BCConf[checkButton.setting] = self:GetChecked()
-    end)
-
-    checkButton.checkButton = button
-
-    return button
-end
