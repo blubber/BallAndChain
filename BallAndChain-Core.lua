@@ -55,9 +55,16 @@ local EventHandler = {
 
 }
 
+local function unitInGuild()
+    local guildName, _, _ = GetGuildInfo("player")
+    return guildName ~= nil
+end
+
 function aObj.SendEvent(event, ...)
     local message = event
     local args = {...}
+
+    if not unitInGuild() then return end
 
     for _, arg in ipairs(args) do
         message = message .. ":"
@@ -70,6 +77,8 @@ function aObj.SendEvent(event, ...)
 end
 
 function aObj.Register()
+    if not unitInGuild() then return end
+
     if not C_ChatInfo.IsAddonMessagePrefixRegistered(aName) then
         C_ChatInfo.RegisterAddonMessagePrefix(aName)
     end
